@@ -29,7 +29,7 @@ targets:
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/App.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        TARGETED_DEVICE_FAMILY: "1"  # Solo iPhone (1=iPhone, 2=iPad, 1,2=ambos)
+        TARGETED_DEVICE_FAMILY: "1,2"  # iPhone y iPad: la app vieja com.tangerine.employ.one soportaba iPad y Apple exige mantenerlo
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
       configs:
         Debug:

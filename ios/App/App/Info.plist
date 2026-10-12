@@ -38,7 +38,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<!-- iPad orientations - comentado porque app es solo para iPhone
+	<!-- iPad orientations: Nóminas reemplaza a la app vieja, que soportaba iPad (Apple exige mantenerlo) -->
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -46,12 +46,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	-->
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>UIDeviceFamily</key>
 	<array>
 		<integer>1</integer>
+		<integer>2</integer>
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>
