@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Nóminas</string>
-    <string name="title_activity_main">Nóminas</string>
+    <string name="app_name">Nóminas IA</string>
+    <string name="title_activity_main">Nóminas IA</string>
     <string name="package_name">com.employ.app</string>
     <string name="custom_url_scheme">com.employ.app</string>
     <!-- EY-CENTRAL 2026-10-09: vista propia cuando la webapp no carga -->
