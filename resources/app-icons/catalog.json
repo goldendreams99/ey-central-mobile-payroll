@@ -1,0 +1,16 @@
+{
+  "icons": [
+    {
+      "name": "default",
+      "label": "Employ"
+    },
+    {
+      "name": "processmotion",
+      "label": "Process Motion"
+    },
+    {
+      "name": "semino",
+      "label": "Semino"
+    }
+  ]
+}

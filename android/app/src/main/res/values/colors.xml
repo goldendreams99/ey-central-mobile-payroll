@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores principales de la marca (Firebase) -->
+    <color name="colorPrimary">#6366f1</color>
+    <color name="colorPrimaryDark">#4f46e5</color>
+    <color name="colorAccent">#8b5cf6</color>
+
+    <!-- Colores del Splash Screen (CAMBIAR AQUÍ PARA TODOS LOS DISPOSITIVOS) -->
+    <color name="splashBackground">#FFFFFF</color>
+    <color name="splashIconBackground">#FFFFFF</color>
+
+    <!-- Fondo de la ventana - Light mode -->
+    <color name="windowBackground">#FFFFFF</color>
+</resources>

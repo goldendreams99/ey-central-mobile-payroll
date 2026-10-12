@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="false"
+        tools:replace="android:usesCleartextTraffic">
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:exported="true">
+            <!-- EY-CENTRAL 2026-10-08: el LAUNCHER vive en los activity-alias de abajo (ícono por organización);
+                 MainActivity sigue siendo la actividad real (App Links, OAuth, push). -->
+
+            <!-- Deep Links para OAuth callback -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Custom scheme para la app -->
+                <data android:scheme="com.employ.app" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- HTTPS links para dev -->
+                <data android:scheme="https" android:host="dev.employ.digital" android:pathPrefix="/auth" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- HTTPS links para producción -->
+                <data android:scheme="https" android:host="app.employ.digital" android:pathPrefix="/auth" />
+            </intent-filter>
+
+            <!-- EY-CENTRAL 2026-10-07 (orden del usuario): App Links — cualquier enlace https a la
+                 plataforma (app y dev.employ.digital; la app mobile NO usa subdominios de organización, decisión del usuario) abre la app en vez del navegador.
+                 Android lo verifica contra https://<host>/.well-known/assetlinks.json (lado web). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="app.employ.digital" />
+                <data android:host="dev.employ.digital" />
+            </intent-filter>
+
+            <!-- EY-CENTRAL 2026-10-09 (orden del usuario, "camino simple"): Employ aparece en "Compartir" para PDF e
+                 imágenes (una factura del banco, del mail, de WhatsApp). La app guarda el archivo y la web lo toma como
+                 comprobante de un gasto nuevo (evento share.received + share.getPendingFile; lado web: EY-01). Sin permisos
+                 nuevos: el archivo llega como content:// con permiso de lectura temporal. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- EY-CENTRAL 2026-10-08: ÍCONO POR ORGANIZACIÓN. ".icon_default" = Employ (siempre existe). Los demás
+             ".icon_<nombre>" los genera zScripts/generate-app-icons.mjs desde resources/app-icons/icon-<nombre>.png
+             y la app los activa con app.setIcon(name). Solo UNO habilitado a la vez. -->
+        <activity-alias
+            android:name=".icon_default"
+            android:targetActivity=".MainActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/title_activity_main">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <!-- APP_ICONS:BEGIN (generado por zScripts/generate-app-icons.mjs; no editar a mano) -->
+        <activity-alias
+            android:name=".icon_processmotion"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_icon_processmotion"
+            android:roundIcon="@mipmap/ic_icon_processmotion_round"
+            android:label="Process Motion">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".icon_semino"
+            android:targetActivity=".MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_icon_semino"
+            android:roundIcon="@mipmap/ic_icon_semino_round"
+            android:label="Semino">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <!-- APP_ICONS:END -->
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- Firebase Messaging Service para recibir push notifications -->
+        <service android:name=".MyFirebaseMessagingService" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+
+    <!-- Permissions -->
+
+    <!-- Internet -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Ubicación -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Notificaciones -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Cámara y Galería. EY-CENTRAL 2026-10-07 (alerta de Play Console, build 380): la galería y el selector
+         de archivos usan los selectores del sistema (ACTION_PICK / GET_CONTENT / OPEN_DOCUMENT) y la foto se guarda
+         por MediaStore, así que NO hace falta READ_MEDIA_IMAGES ni almacenamiento amplio en Android 13+.
+         Se quita READ_MEDIA_IMAGES y los de almacenamiento quedan solo para versiones viejas. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+
+    <!-- Micrófono -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Biometría -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+
+    <!-- Vibración -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Features opcionales -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.fingerprint" android:required="false" />
+
+    <!-- Solo móviles, no tablets -->
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="false"
+        android:xlargeScreens="false"
+        android:requiresSmallestWidthDp="320" />
+
+    <!-- Requerir telefonía excluye tablets sin SIM, TV, Chromebooks, etc -->
+    <uses-feature android:name="android.hardware.telephony" android:required="true" />
+</manifest>

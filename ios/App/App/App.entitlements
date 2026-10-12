@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>aps-environment</key>
+	<string>production</string>
+	<!-- EY-CENTRAL 2026-10-07 (orden del usuario): universal links. OJO: en junio este entitlement rompió el archive
+	     en Codemagic porque la capability Associated Domains no estaba activa en el App ID ni en el provisioning
+	     profile. Activarla en developer.apple.com ANTES del próximo build, y regenerar el profile. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:app.employ.digital</string>
+		<string>applinks:dev.employ.digital</string>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Employ</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<!-- iPad orientations - comentado porque app es solo para iPhone
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	-->
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Employ necesita acceder a tu ubicación para registrar fichajes y verificar tu presencia en el lugar de trabajo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Employ necesita acceder a tus fotos para que puedas subir imágenes a tu perfil y documentos.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Employ necesita acceder a la cámara para tomar fotos de documentos y perfil.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Employ necesita acceder al micrófono para grabar notas de voz y videos.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Employ usa Face ID para autenticarte de forma segura y acceder rapidamente a la aplicacion.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.employ.app</string>
+				<string>ai.employ.app</string>
+			</array>
+		</dict>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<!-- EY-CENTRAL 2026-10-09 (orden del usuario, "camino simple"): Employ abre PDF e imágenes desde la hoja de
+	     compartir ("Abrir en Employ" / "Copiar a Employ") y desde Archivos. El archivo llega por
+	     application(_:open:options:) como file://; la app lo guarda y la web lo toma como comprobante de un gasto
+	     nuevo (share.received + share.getPendingFile; lado web: EY-01). Sin extensión ni target nuevo. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Comprobante</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+				<string>public.image</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
+</dict>
+</plist>

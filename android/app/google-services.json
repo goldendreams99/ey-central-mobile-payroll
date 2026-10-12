@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "603577250068",
+    "project_id": "employ-central",
+    "storage_bucket": "employ-central.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603577250068:android:d1934ef2ebbade8a4bd201",
+        "android_client_info": {
+          "package_name": "ai.employ.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAN4sBfM2M6hJQ0U0vr-sqVNF7PPc_Qm9c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

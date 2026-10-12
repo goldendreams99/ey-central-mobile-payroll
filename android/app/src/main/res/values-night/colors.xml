@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores principales de la marca (Firebase) - modo oscuro -->
+    <color name="colorPrimary">#818cf8</color>
+    <color name="colorPrimaryDark">#6366f1</color>
+    <color name="colorAccent">#a78bfa</color>
+
+    <!-- Colores del Splash Screen - Dark mode -->
+    <color name="splashBackground">#000000</color>
+    <color name="splashIconBackground">#000000</color>
+
+    <!-- Fondo de la ventana - Dark mode -->
+    <color name="windowBackground">#000000</color>
+</resources>

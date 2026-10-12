@@ -1,0 +1,115 @@
+name: App
+options:
+  bundleIdPrefix: ai.employ
+  deploymentTarget:
+    iOS: "15.0"
+    watchOS: "9.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "2.9.2"
+    CURRENT_PROJECT_VERSION: "383"
+
+targets:
+  # Main iOS App
+  App:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ai.employ.app
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/App.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"  # Solo iPhone (1=iPhone, 2=iPad, 1,2=ambos)
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
+      configs:
+        Debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+          OTHER_SWIFT_FLAGS: "$(inherited) -D COCOAPODS -DDEBUG"
+        Release:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: ""
+    # dependencies:
+    #   - target: EmployWatch
+    #     embed: watch
+    preBuildScripts:
+      - name: "[CP] Check Pods Manifest.lock"
+        script: |
+          diff "${PODS_PODFILE_DIR_PATH}/Podfile.lock" "${PODS_ROOT}/Manifest.lock" > /dev/null
+          if [ $? != 0 ] ; then
+              echo "error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation." >&2
+              exit 1
+          fi
+          echo "SUCCESS" > "${SCRIPT_OUTPUT_FILE_0}"
+        inputFiles:
+          - "${PODS_PODFILE_DIR_PATH}/Podfile.lock"
+          - "${PODS_ROOT}/Manifest.lock"
+        outputFiles:
+          - "$(DERIVED_FILE_DIR)/Pods-App-checkManifestLockResult.txt"
+        showEnvVars: false
+    postBuildScripts:
+      - name: "[CP] Embed Pods Frameworks"
+        script: |
+          "${PODS_ROOT}/Target Support Files/Pods-App/Pods-App-frameworks.sh"
+        showEnvVars: false
+
+  # Watch App
+  EmployWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: EmployWatch
+        excludes:
+          - "**/.DS_Store"
+          - "README.md"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ai.employ.app.watch
+        INFOPLIST_FILE: EmployWatch/Info.plist
+        CODE_SIGN_ENTITLEMENTS: EmployWatch/EmployWatch.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "4"
+        WATCHOS_DEPLOYMENT_TARGET: "9.0"
+        SDKROOT: watchos
+        SKIP_INSTALL: "YES"
+        WK_COMPANION_APP_BUNDLE_IDENTIFIER: ai.employ.app
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: ai.employ.app
+        INFOPLIST_KEY_CFBundleDisplayName: Employ
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
+        ENABLE_PREVIEWS: "YES"
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+
+schemes:
+  App:
+    build:
+      targets:
+        App: all
+        # EmployWatch: all  # WATCH DISABLED - descomentar para incluir Apple Watch
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+  EmployWatch:
+    build:
+      targets:
+        EmployWatch: all
+    run:
+      config: Debug
+    archive:
+      config: Release

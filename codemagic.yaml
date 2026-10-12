@@ -1,0 +1,36 @@
+workflows:
+  ios-workflow:
+    name: iOS + Watch Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Tang Admin
+    environment:
+      ios_signing:
+        provisioning_profiles:
+          - employ-appstore
+          - employ-watch-appstore
+        certificates:
+          - employ-cert
+      node: 22 # EY-CENTRAL 2026-10-08: Capacitor 8 exige Node >=22 (el build fallaba en "Sync Capacitor")
+      xcode: 26.4 # EY-CENTRAL 2026-10-08: Codemagic pide 26.4/26.5 para no quedar en "queued" (máquinas liberadas); Capacitor 8.5 e iOS 15 compilan con Xcode 26
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Build web assets
+        script: npm run build
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Install CocoaPods
+        script: cd ios/App && pod install
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Build and export IPA
+        script: xcode-project build-ipa --workspace "ios/App/App.xcworkspace" --scheme "App" --verbose --disable-xcpretty # EY-CENTRAL 2026-10-08: log completo de xcodebuild en el paso (el resumen no mostraba el error)
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - "**/*.ipa"
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
