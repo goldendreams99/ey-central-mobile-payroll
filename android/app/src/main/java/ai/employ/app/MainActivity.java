@@ -610,8 +610,8 @@ public class MainActivity extends BridgeActivity {
     private void loadUrlFromFirebase() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-        // 1. Obtener platforms/app-mobile para saber la versión actual
-        db.collection("platforms").document("app-mobile")
+        // 1. Obtener platforms/app-mobile-payroll para saber la versión actual
+        db.collection("platforms").document("app-mobile-payroll")
             .get()
             .addOnSuccessListener(platformDoc -> {
                 if (platformDoc.exists()) {
@@ -620,7 +620,7 @@ public class MainActivity extends BridgeActivity {
 
                     if (currentVersion != null) {
                         // 2. Obtener la config de esa versión
-                        db.collection("platforms").document("app-mobile")
+                        db.collection("platforms").document("app-mobile-payroll")
                             .collection("versions").document(currentVersion)
                             .get()
                             .addOnSuccessListener(versionDoc -> {
@@ -676,13 +676,13 @@ public class MainActivity extends BridgeActivity {
     private void updateUrlFromFirebase() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-        db.collection("platforms").document("app-mobile")
+        db.collection("platforms").document("app-mobile-payroll")
             .get()
             .addOnSuccessListener(platformDoc -> {
                 if (platformDoc.exists()) {
                     String currentVersion = platformDoc.getString("current");
                     if (currentVersion != null) {
-                        db.collection("platforms").document("app-mobile")
+                        db.collection("platforms").document("app-mobile-payroll")
                             .collection("versions").document(currentVersion)
                             .get()
                             .addOnSuccessListener(versionDoc -> {

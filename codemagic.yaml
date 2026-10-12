@@ -1,17 +1,14 @@
 workflows:
   ios-workflow:
-    name: iOS + Watch Build
+    name: Nóminas iOS
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
       app_store_connect: Tang Admin
     environment:
-      ios_signing:
-        provisioning_profiles:
-          - employ-appstore
-          - employ-watch-appstore
-        certificates:
-          - employ-cert
+      ios_signing: # EY-CENTRAL 2026-10-12: Nóminas usa la app existente com.tangerine.employ.one; Codemagic baja el perfil solo
+        distribution_type: app_store
+        bundle_identifier: com.tangerine.employ.one
       node: 22 # EY-CENTRAL 2026-10-08: Capacitor 8 exige Node >=22 (el build fallaba en "Sync Capacitor")
       xcode: 26.4 # EY-CENTRAL 2026-10-08: Codemagic pide 26.4/26.5 para no quedar en "queued" (máquinas liberadas); Capacitor 8.5 e iOS 15 compilan con Xcode 26
     scripts:

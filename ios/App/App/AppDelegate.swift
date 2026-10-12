@@ -179,8 +179,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     private func loadUrlFromFirebase() {
         let db = Firestore.firestore()
 
-        // 1. Obtener platforms/app-mobile para saber la versión actual
-        db.collection("platforms").document("app-mobile").getDocument { [weak self] document, error in
+        // 1. Obtener platforms/app-mobile-payroll para saber la versión actual
+        db.collection("platforms").document("app-mobile-payroll").getDocument { [weak self] document, error in
             guard let self = self else { return }
 
             if let error = error {
@@ -196,8 +196,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
             print("[DIRECT MODE] Current version: \(currentVersion)")
 
-            // 2. Obtener platforms/app-mobile/versions/{version} para las URLs
-            db.collection("platforms").document("app-mobile")
+            // 2. Obtener platforms/app-mobile-payroll/versions/{version} para las URLs
+            db.collection("platforms").document("app-mobile-payroll")
                 .collection("versions").document(currentVersion)
                 .getDocument { [weak self] versionDoc, versionError in
                     guard let self = self else { return }
@@ -235,13 +235,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let db = Firestore.firestore()
 
         // 1. Obtener versión actual
-        db.collection("platforms").document("app-mobile").getDocument { [weak self] document, error in
+        db.collection("platforms").document("app-mobile-payroll").getDocument { [weak self] document, error in
             guard let self = self,
                   let data = document?.data(),
                   let currentVersion = data["current"] as? String else { return }
 
             // 2. Obtener URLs de la versión
-            db.collection("platforms").document("app-mobile")
+            db.collection("platforms").document("app-mobile-payroll")
                 .collection("versions").document(currentVersion)
                 .getDocument { [weak self] versionDoc, _ in
                     guard let self = self,

@@ -1,13 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Employ</string>
-    <string name="title_activity_main">Employ</string>
+    <string name="app_name">Nóminas</string>
+    <string name="title_activity_main">Nóminas</string>
     <string name="package_name">com.employ.app</string>
     <string name="custom_url_scheme">com.employ.app</string>
     <!-- EY-CENTRAL 2026-10-09: vista propia cuando la webapp no carga -->
     <string name="offline_title">Sin conexión</string>
-    <string name="offline_body">No se pudo cargar Employ. Revisa tu conexión e intenta de nuevo.</string>
-    <string name="server_error_title">Employ no responde</string>
-    <string name="server_error_body">Hubo un problema al cargar Employ. Intenta de nuevo en unos segundos.</string>
+    <string name="offline_body">No se pudo cargar Nóminas. Revisa tu conexión e intenta de nuevo.</string>
+    <string name="server_error_title">Nóminas no responde</string>
+    <string name="server_error_body">Hubo un problema al cargar Nóminas. Intenta de nuevo en unos segundos.</string>
     <string name="offline_retry">Reintentar</string>
 </resources>

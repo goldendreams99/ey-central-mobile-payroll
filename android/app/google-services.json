@@ -23,6 +23,44 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603577250068:android:db12d2a9a462134f4bd201",
+        "android_client_info": {
+          "package_name": "ai.employ.watch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAN4sBfM2M6hJQ0U0vr-sqVNF7PPc_Qm9c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603577250068:android:a907a6ccb4bfa7d94bd201",
+        "android_client_info": {
+          "package_name": "com.tangerine.employ.one"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAN4sBfM2M6hJQ0U0vr-sqVNF7PPc_Qm9c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

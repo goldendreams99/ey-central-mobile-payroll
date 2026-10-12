@@ -4,13 +4,7 @@
 <dict>
 	<key>aps-environment</key>
 	<string>production</string>
-	<!-- EY-CENTRAL 2026-10-07 (orden del usuario): universal links. OJO: en junio este entitlement rompió el archive
-	     en Codemagic porque la capability Associated Domains no estaba activa en el App ID ni en el provisioning
-	     profile. Activarla en developer.apple.com ANTES del próximo build, y regenerar el profile. -->
-	<key>com.apple.developer.associated-domains</key>
-	<array>
-		<string>applinks:app.employ.digital</string>
-		<string>applinks:dev.employ.digital</string>
-	</array>
+	<!-- EY-CENTRAL 2026-10-12: Nóminas sin universal links por ahora (app.employ.digital es de Employ; el App ID
+	     com.tangerine.employ.one no tiene Associated Domains). Volver a agregar con payroll.employ.digital. -->
 </dict>
 </plist>

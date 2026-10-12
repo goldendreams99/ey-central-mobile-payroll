@@ -86,32 +86,7 @@
             </intent-filter>
         </activity-alias>
         <!-- APP_ICONS:BEGIN (generado por zScripts/generate-app-icons.mjs; no editar a mano) -->
-        <activity-alias
-            android:name=".icon_processmotion"
-            android:targetActivity=".MainActivity"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@mipmap/ic_icon_processmotion"
-            android:roundIcon="@mipmap/ic_icon_processmotion_round"
-            android:label="Process Motion">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-        <activity-alias
-            android:name=".icon_semino"
-            android:targetActivity=".MainActivity"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@mipmap/ic_icon_semino"
-            android:roundIcon="@mipmap/ic_icon_semino_round"
-            android:label="Semino">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
+
         <!-- APP_ICONS:END -->
 
         <provider

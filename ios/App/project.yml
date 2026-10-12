@@ -1,6 +1,6 @@
 name: App
 options:
-  bundleIdPrefix: ai.employ
+  bundleIdPrefix: com.tangerine.employ
   deploymentTarget:
     iOS: "15.0"
     watchOS: "9.0"
@@ -11,8 +11,8 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "2.9.2"
-    CURRENT_PROJECT_VERSION: "383"
+    MARKETING_VERSION: "5.0.1"
+    CURRENT_PROJECT_VERSION: "116"
 
 targets:
   # Main iOS App
@@ -25,7 +25,7 @@ targets:
           - "**/.DS_Store"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: ai.employ.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.tangerine.employ.one
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/App.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -72,7 +72,7 @@ targets:
           - "README.md"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: ai.employ.app.watch
+        PRODUCT_BUNDLE_IDENTIFIER: com.tangerine.employ.one.watch
         INFOPLIST_FILE: EmployWatch/Info.plist
         CODE_SIGN_ENTITLEMENTS: EmployWatch/EmployWatch.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -81,8 +81,8 @@ targets:
         WATCHOS_DEPLOYMENT_TARGET: "9.0"
         SDKROOT: watchos
         SKIP_INSTALL: "YES"
-        WK_COMPANION_APP_BUNDLE_IDENTIFIER: ai.employ.app
-        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: ai.employ.app
+        WK_COMPANION_APP_BUNDLE_IDENTIFIER: com.tangerine.employ.one
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.tangerine.employ.one
         INFOPLIST_KEY_CFBundleDisplayName: Employ
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/Frameworks"
         ENABLE_PREVIEWS: "YES"
