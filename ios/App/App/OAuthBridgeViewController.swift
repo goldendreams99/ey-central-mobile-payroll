@@ -20,6 +20,44 @@ class OAuthBridgeViewController: CAPBridgeViewController {
         // estado; la web reserva arriba con --status-bar-height (inyectado al inicio del documento, sin tiron).
         installHomeIndicatorChild() // EY-CENTRAL 2026-10-08: ocultar el home indicator vía hijo (Capacitor 8)
         installFirstPaintSignal() // EY-CENTRAL 2026-10-09: el splash se va en el primer cuadro de la webapp
+        installTrackerBlocker() // EY-CENTRAL 2026-10-13: Apple 5.1.2, sin rastreo dentro de la app
+    }
+
+    // EY-CENTRAL 2026-10-13 (revisión de Apple 5.1.2 de la 116, orden del usuario): la webapp carga Microsoft Clarity, que
+    // deja cookies de terceros. En vez de pedir App Tracking Transparency, la app NO rastrea: una lista de bloqueo de WebKit
+    // corta Clarity y los píxeles de publicidad (Google, Meta, Bing, LinkedIn, TikTok) antes de que se pidan. La medición
+    // propia (PostHog por e.employ.digital, Vercel) y el inicio de sesión (Clerk, accounts.google.com) no se tocan.
+    private static let blockedTrackerPatterns = [
+        "clarity\\.ms/",
+        "bat\\.bing\\.com/",
+        "c\\.bing\\.com/",
+        "google-analytics\\.com/",
+        "googletagmanager\\.com/",
+        "doubleclick\\.net/",
+        "googleadservices\\.com/",
+        "googlesyndication\\.com/",
+        "connect\\.facebook\\.net/",
+        "facebook\\.com/tr",
+        "px\\.ads\\.linkedin\\.com/",
+        "snap\\.licdn\\.com/",
+        "analytics\\.tiktok\\.com/",
+    ]
+
+    private func installTrackerBlocker() {
+        let rules = Self.blockedTrackerPatterns.map { pattern in
+            ["trigger": ["url-filter": "^https?://[^/]*" + pattern], "action": ["type": "block"]]
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: rules),
+              let json = String(data: data, encoding: .utf8) else { return }
+        WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "ey-tracker-blocker", encodedContentRuleList: json) { [weak self] list, error in
+            guard let list = list else {
+                CAPLog.print("⚠️ [TrackerBlocker] No compiló: \(error?.localizedDescription ?? "?")")
+                return
+            }
+            DispatchQueue.main.async {
+                self?.webView?.configuration.userContentController.add(list)
+            }
+        }
     }
 
     // EY-CENTRAL 2026-10-09 (usuario: "¿por qué el splash dura tanto?"): WKWebView no avisa el primer pintado. Un script al
