@@ -51,6 +51,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         splashStartTime = Date()
 
+        // EY-CENTRAL 2026-10-15 (mismo arreglo que Employ 2.9.5 del 2026-10-13, captura zRef/zError/55): con el teclado
+        // abierto el WebView se achica y lo que queda detrás (esquinas redondeadas del teclado) es la ventana, que era
+        // negra. Blanco como la página, también con el iPhone en modo oscuro (la webapp es solo clara).
+        self.window?.backgroundColor = .white
+
         // Mostrar splash inmediatamente
         self.showSplash()
 
