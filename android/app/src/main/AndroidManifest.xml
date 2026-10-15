@@ -45,6 +45,22 @@
                 <data android:scheme="https" android:host="app.employ.digital" android:pathPrefix="/auth" />
             </intent-filter>
 
+            <!-- EY-CENTRAL 2026-10-15 (orden del usuario): Nóminas IA también abre payroll.employ.digital y
+                 payroll-dev.employ.digital (pruebas). Los dominios de Employ se mantienen a pedido del usuario. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="payroll.employ.digital" android:pathPrefix="/auth" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="payroll-dev.employ.digital" android:pathPrefix="/auth" />
+            </intent-filter>
+
             <!-- EY-CENTRAL 2026-10-07 (orden del usuario): App Links — cualquier enlace https a la
                  plataforma (app y dev.employ.digital; la app mobile NO usa subdominios de organización, decisión del usuario) abre la app en vez del navegador.
                  Android lo verifica contra https://<host>/.well-known/assetlinks.json (lado web). -->
@@ -55,6 +71,8 @@
                 <data android:scheme="https" />
                 <data android:host="app.employ.digital" />
                 <data android:host="dev.employ.digital" />
+                <data android:host="payroll.employ.digital" />
+                <data android:host="payroll-dev.employ.digital" />
             </intent-filter>
 
             <!-- EY-CENTRAL 2026-10-09 (orden del usuario, "camino simple"): Employ aparece en "Compartir" para PDF e
