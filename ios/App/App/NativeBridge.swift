@@ -233,7 +233,10 @@ class NativeBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDelegate 
 
     private func emitKeyboardPhase(_ phase: String, open: Bool, height: CGFloat, duration: Double) {
         let script = "window.dispatchEvent(new CustomEvent('ey:keyboard',{detail:{phase:'\(phase)',open:\(open),height:\(Int(height.rounded())),duration:\(Int(duration * 1000))}}))"
-        DispatchQueue.main.async { self.webView?.evaluateJavaScript(script, completionHandler: nil) }
+        // EY-CENTRAL 2026-10-16 (revisión de Zeus): sincrónico, por el mismo camino que los `progress`. La notificación del
+        // teclado ya llega en el hilo principal; con el async el `start` del cierre podía llegar a la página DESPUÉS del
+        // cambio de tamaño y hasta después del primer `progress`, y la caja caía un cuadro al fondo.
+        webView?.evaluateJavaScript(script, completionHandler: nil)
     }
 
     // MARK: - Keychain Helpers (para deviceId persistente entre reinstalaciones)
