@@ -26,14 +26,23 @@ android {
         applicationId "com.tangerine.employ.one"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 119
-        versionName "5.0.3"
+        versionCode 120
+        versionName "5.0.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // EY-CENTRAL 2026-10-16 (pedido de EY-PAYROLL): compilación de PRUEBA que arranca en el servidor local de la compu.
+        // `gradlew assembleRelease -PeyLocalUrl=http://localhost:3000/payroll` (el Pixel ve la compu con `adb reverse tcp:3000 tcp:3000`).
+        // Sin la propiedad (tienda) queda vacío y todo sigue igual: sin http, sin depuración remota.
+        def eyLocalUrl = project.hasProperty("eyLocalUrl") ? project.property("eyLocalUrl").toString() : ""
+        buildConfigField "String", "EY_LOCAL_URL", "\"${eyLocalUrl}\""
+        manifestPlaceholders = [eyCleartext: eyLocalUrl.isEmpty() ? "false" : "true"]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+    }
+    buildFeatures {
+        buildConfig true
     }
     buildTypes {
         release {

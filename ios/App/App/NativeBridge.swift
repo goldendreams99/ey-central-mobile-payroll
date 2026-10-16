@@ -74,6 +74,10 @@ class NativeBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDelegate 
         NotificationCenter.default.addObserver(
             self, selector: #selector(handleKeyboardWillHide(_:)),
             name: UIResponder.keyboardWillHideNotification, object: nil)
+        // EY-CENTRAL 2026-10-16: el teclado arrastra la página cuadro a cuadro (ver followKeyboard)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(followKeyboard(_:)),
+            name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
     }
 
     deinit {
@@ -125,6 +129,111 @@ class NativeBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDelegate 
             "duration": Int(duration * 1000),
             "visible": false
         ])
+    }
+
+    // MARK: - Teclado cuadro a cuadro (EY-CENTRAL 2026-10-16; pedido de EY-PAYROLL, revisión de Zeus)
+    //
+    // En Capacitor 8 la vista raíz ES el WKWebView. El plugin Keyboard de Capacitor (modo "native") le cambiaba el frame de
+    // golpe: al abrir, 0,2 s DESPUÉS de que el teclado terminara de subir; al cerrar, al instante. La primera versión de
+    // esto (mañana del 16/10) cambiaba el frame en cada cuadro: eso obliga a la página a re-maquetarse entera ~15 veces en
+    // 250 ms, lo más caro que hay (Zeus). Ahora, mismo contrato que Android:
+    // - el frame del WebView cambia UNA sola vez: al abrir, al TERMINAR la animación; al cerrar, al EMPEZAR (la página grande
+    //   mientras el teclado se mueve; el teclado la tapa y la web mueve la caja con `transform`);
+    // - en cada cuadro (CADisplayLink sobre una vista invisible animada con la duración y la curva REALES del teclado) le pasa
+    //   a la web cuánto tapa el teclado y el layout todavía no descuenta: `--ey-keyboard-height` en <html> (px) y
+    //   `ey:keyboard` fase "progress";
+    // - `ey:keyboard` fase "start" (height final, duration) al empezar y "end" al terminar, con la variable en 0.
+    // El plugin no toca el frame: `Keyboard.resize = "none"` en capacitor.config.json.
+    private var keyboardTracker: UIView?
+    private var keyboardLink: CADisplayLink?
+    private var keyboardTargetHeight: CGFloat = 0
+    private var keyboardLastSent: Int = -1
+
+    @objc private func followKeyboard(_ notification: Notification) {
+        guard let webView = webView, let window = webView.window, let info = notification.userInfo,
+              let end = (info[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else { return }
+        let duration = (info[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.25
+        let curve = (info[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber)?.uintValue ?? 7
+        let endInWindow = window.convert(end, from: nil)
+        var overlap = max(0, window.bounds.maxY - endInWindow.minY)
+        if overlap < 100 { overlap = 0 } // solo la barra de sugerencias (teclado físico): la página no se achica
+        let fullHeight = window.bounds.height - webView.frame.minY
+        let target = fullHeight - overlap
+        if keyboardLink == nil && abs(webView.frame.height - target) < 0.5 { return }
+        if keyboardLink != nil && abs(keyboardTargetHeight - target) < 0.5 { return }
+        let opening = target < webView.frame.height
+        keyboardTargetHeight = target
+        keyboardLastSent = -1
+        emitKeyboardPhase("start", open: overlap > 0, height: overlap, duration: duration)
+        if !opening { applyWebViewHeight(target) } // al cerrar, la página grande desde el primer cuadro
+
+        let tracker: UIView
+        if let existing = keyboardTracker {
+            tracker = existing
+        } else {
+            tracker = UIView(frame: .zero)
+            tracker.isHidden = true
+            tracker.isUserInteractionEnabled = false
+            webView.addSubview(tracker)
+            keyboardTracker = tracker
+        }
+        // La vista invisible mide "cuánto tapa el teclado": va de lo tapado ahora a `overlap` con la curva real.
+        let coveredNow = tracker.layer.presentation()?.bounds.height ?? (opening ? 0 : fullHeight - webView.frame.height)
+        tracker.layer.removeAllAnimations()
+        tracker.frame = CGRect(x: 0, y: 0, width: 1, height: coveredNow)
+
+        keyboardLink?.invalidate()
+        let link = CADisplayLink(target: self, selector: #selector(keyboardTick))
+        link.add(to: .main, forMode: .common)
+        keyboardLink = link
+
+        let options = UIView.AnimationOptions(rawValue: curve << 16).union(.beginFromCurrentState)
+        UIView.animate(withDuration: duration, delay: 0, options: options, animations: {
+            tracker.frame = CGRect(x: 0, y: 0, width: 1, height: overlap)
+        }, completion: { [weak self] _ in
+            guard let self = self, self.keyboardLink === link else { return }
+            self.finishKeyboardFollow(open: overlap > 0, height: overlap)
+        })
+    }
+
+    @objc private func keyboardTick() {
+        guard let webView = webView, let window = webView.window, let tracker = keyboardTracker else { return }
+        let covered = tracker.layer.presentation()?.bounds.height ?? 0
+        let accounted = (window.bounds.height - webView.frame.minY) - webView.frame.height // lo que el layout ya descuenta
+        sendCovered(max(0, covered - accounted))
+    }
+
+    private func sendCovered(_ covered: CGFloat) {
+        let px = Int(covered.rounded())
+        if px == keyboardLastSent { return }
+        keyboardLastSent = px
+        let script = "document.documentElement.style.setProperty('--ey-keyboard-height','\(px)px');window.dispatchEvent(new CustomEvent('ey:keyboard',{detail:{phase:'progress',height:\(px)}}))"
+        webView?.evaluateJavaScript(script, completionHandler: nil)
+    }
+
+    private func applyWebViewHeight(_ height: CGFloat) {
+        guard let webView = webView else { return }
+        var frame = webView.frame
+        if abs(frame.height - height) < 0.5 { return }
+        frame.size.height = height
+        webView.frame = frame
+        webView.scrollView.contentInset = .zero
+        webView.scrollView.scrollIndicatorInsets = .zero
+    }
+
+    private func finishKeyboardFollow(open: Bool, height: CGFloat) {
+        keyboardLink?.invalidate()
+        keyboardLink = nil
+        keyboardLastSent = -1
+        // El único achique: el layout descuenta el teclado y la variable vuelve a 0.
+        webView?.evaluateJavaScript("document.documentElement.style.setProperty('--ey-keyboard-height','0px')", completionHandler: nil)
+        applyWebViewHeight(keyboardTargetHeight)
+        emitKeyboardPhase("end", open: open, height: height, duration: 0)
+    }
+
+    private func emitKeyboardPhase(_ phase: String, open: Bool, height: CGFloat, duration: Double) {
+        let script = "window.dispatchEvent(new CustomEvent('ey:keyboard',{detail:{phase:'\(phase)',open:\(open),height:\(Int(height.rounded())),duration:\(Int(duration * 1000))}}))"
+        DispatchQueue.main.async { self.webView?.evaluateJavaScript(script, completionHandler: nil) }
     }
 
     // MARK: - Keychain Helpers (para deviceId persistente entre reinstalaciones)

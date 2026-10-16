@@ -517,6 +517,11 @@ public class MainActivity extends BridgeActivity {
     private void loadWebappDirect() {
         // Pequeño delay para asegurar que el WebView esté listo
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (!BuildConfig.EY_LOCAL_URL.isEmpty()) { // EY-CENTRAL 2026-10-16: compilación de prueba → servidor local, sin Firebase ni caché
+                Log.d(TAG, "DIRECT MODE: local build, starting at " + BuildConfig.EY_LOCAL_URL);
+                loadUrlInWebView(BuildConfig.EY_LOCAL_URL);
+                return;
+            }
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
             String cachedUrl = prefs.getString(CACHED_WEBAPP_URL_KEY, null);
             if (initialDeepLinkUrl != null) {
@@ -1046,6 +1051,219 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    /**
+     * EY-CENTRAL 2026-10-16 (pedido de EY-PAYROLL; reclamo del usuario en producción; revisión de Zeus y mediciones de
+     * EY-PAYROLL y de la sonda propia en el Pixel): EL TECLADO ARRASTRA LA CAJA CUADRO A CUADRO, COMO GEMINI, SIN
+     * REARMAR LA PÁGINA.
+     *
+     * Qué pasaba: al despacharse los insets finales (INICIO de la animación del teclado) DOS cosas descontaban el teclado a
+     * la vez: el SystemBars de Capacitor ponía el alto del IME como relleno del padre del WebView, y el propio WebView
+     * (Chromium) recibía el inset del IME intacto y lo descontaba por su cuenta. Medido: un cuadro con la página a 173 px
+     * (866 − 2×346), después 519, de golpe, con banda mientras el teclado subía. Y la primera versión de este método
+     * (achicar el WebView por cuadro) re-maqueta la página entera ~15 veces en 250 ms (Zeus): descartada.
+     *
+     * Qué hace ahora (contrato con la web, igual en iOS):
+     * - UN solo escritor de los insets: este método reemplaza el listener de Capacitor en el padre del WebView. Pone el
+     *   relleno inferior (= alto del IME cuando está visible, 0 si no) y le pasa al WebView los insets SIN el IME, así
+     *   Chromium no vuelve a descontarlo. Las barras del sistema pasan como antes (la web las maneja con sus variables).
+     * - El alto de la página cambia UNA sola vez por apertura o cierre, cuando la página es MÁS GRANDE: al abrir, al
+     *   TERMINAR la animación (onEnd); al cerrar, al EMPEZAR (onStart). Mientras el teclado se mueve el layout no cambia:
+     *   el teclado tapa la página y la web mueve la caja con `transform`.
+     * - En cada cuadro (onProgress) le pasa a la web cuánto tapa el teclado y el layout todavía no descuenta, en px CSS:
+     *   la variable CSS `--ey-keyboard-height` en <html> (0 en reposo) y el evento `ey:keyboard` fase "progress". El valor
+     *   sale del inset del IME del propio WindowInsetsCompat del cuadro (interpolado por el sistema).
+     * - `ey:keyboard` fase "start" (height final, duration ms, open) al empezar y "end" (open, height) al terminar, cuando
+     *   el layout ya descontó el teclado y la variable volvió a 0.
+     * El callback va en la vista raíz porque el plugin Keyboard de Capacitor pone ahí el suyo con DISPATCH_MODE_STOP (los
+     * hijos no reciben nada): lo reemplaza; sus eventos keyboardWillShow/DidShow no los usa la web. Antes de Android 11 no
+     * hay animación de insets: el relleno se aplica en el despacho, como siempre.
+     */
+    private void installKeyboardFollow(WebView webView) {
+        final View root = getWindow().getDecorView();
+        if (!(webView.getParent() instanceof View)) return;
+        final View parent = (View) webView.getParent();
+        parent.setBackgroundColor(android.graphics.Color.WHITE); // ningún cuadro muestra negro
+        final float density = getResources().getDisplayMetrics().density;
+        final int[] finalBottom = {parent.getPaddingBottom()}; // lo que el despacho de insets pide
+        final int[] startBottom = {0};
+        final int[] targetBottom = {0}; // destino real de ESTA animación (al tomar el control, el sistema vuelve a avisar el estado viejo)
+        final boolean[] imeRunning = {false};
+        final int[] lastSent = {-1};
+        final int[] holdUntilTaller = {-1}; // al cerrar: alto del WebView antes de agrandarlo; la variable espera a que crezca
+        // EY-CENTRAL 2026-10-16 (pedido de EY-PAYROLL, 14:50; reclamo del usuario "se traba al llegar abajo"): la curva del
+        // teclado del sistema hace el 80 % del recorrido en 90 ms y arrastra una cola de 170 ms en la franja de abajo. Como
+        // Gemini, la app CONDUCE la animación del IME: apenas el sistema la arranca, pide el control
+        // (controlWindowInsetsAnimation), la cancela y la lleva ella con una curva pareja de IME_DRIVE_MS. Los callbacks de
+        // abajo reciben la animación conducida igual que la del sistema (onPrepare/onStart/onProgress/onEnd), así que la web
+        // sigue recibiendo progress por cuadro. Si el sistema niega el control, queda la animación del sistema.
+        final boolean[] driving = {false};         // la app lleva la animación (pedida o en curso)
+        final boolean[] takeoverPending = {false}; // pedimos el control: el fin de la del sistema y el arranque de la nuestra no cuentan
+        final boolean[] controlDenied = {false};   // el sistema negó el control: no insistir
+
+        // Único escritor de los insets del padre (reemplaza al de SystemBars de Capacitor).
+        ViewCompat.setOnApplyWindowInsetsListener(parent, (v, insets) -> {
+            boolean keyboardVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
+            int imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
+            finalBottom[0] = keyboardVisible ? imeBottom : 0;
+            if (!imeRunning[0]) setPaddingBottom(v, finalBottom[0]); // sin animación (teclado físico, cambios sin animar)
+            return new WindowInsetsCompat.Builder(insets)
+                .setInsets(WindowInsetsCompat.Type.ime(), Insets.NONE) // el WebView no vuelve a descontar el teclado
+                .build();
+        });
+
+        ViewCompat.setWindowInsetsAnimationCallback(root,
+            new androidx.core.view.WindowInsetsAnimationCompat.Callback(
+                androidx.core.view.WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_STOP) {
+
+                private boolean isIme(androidx.core.view.WindowInsetsAnimationCompat animation) {
+                    return (animation.getTypeMask() & WindowInsetsCompat.Type.ime()) != 0;
+                }
+
+                private void sendCovered(int imeBottomPx) {
+                    int coveredCss = Math.max(0, Math.round((imeBottomPx - parent.getPaddingBottom()) / density));
+                    if (coveredCss == lastSent[0]) return;
+                    lastSent[0] = coveredCss;
+                    webView.evaluateJavascript("document.documentElement.style.setProperty('--ey-keyboard-height','"
+                        + coveredCss + "px');window.dispatchEvent(new CustomEvent('ey:keyboard',{detail:{phase:'progress',height:"
+                        + coveredCss + "}}))", null);
+                }
+
+                @Override
+                public void onPrepare(@NonNull androidx.core.view.WindowInsetsAnimationCompat animation) {
+                    if (!isIme(animation)) return;
+                    if (takeoverPending[0]) return; // arranca la animación conducida: el estado sigue el de la del sistema
+                    imeRunning[0] = true;
+                    startBottom[0] = parent.getPaddingBottom();
+                }
+
+                @NonNull
+                @Override
+                public androidx.core.view.WindowInsetsAnimationCompat.BoundsCompat onStart(
+                        @NonNull androidx.core.view.WindowInsetsAnimationCompat animation,
+                        @NonNull androidx.core.view.WindowInsetsAnimationCompat.BoundsCompat bounds) {
+                    if (!isIme(animation)) return bounds;
+                    if (takeoverPending[0]) { takeoverPending[0] = false; return bounds; } // arranque de la conducida: ya está todo hecho
+                    targetBottom[0] = finalBottom[0];
+                    boolean opening = targetBottom[0] > startBottom[0];
+                    holdUntilTaller[0] = -1;
+                    if (!opening) {
+                        // Cerrar: la página grande desde el primer cuadro. La variable se retiene hasta que la página ya
+                        // creció (medido: el JS llegaba un cuadro antes que el nuevo tamaño y la caja saltaba un cuadro).
+                        holdUntilTaller[0] = webView.getHeight();
+                        setPaddingBottom(parent, targetBottom[0]);
+                    }
+                    WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(root);
+                    boolean open = insets != null && insets.isVisible(WindowInsetsCompat.Type.ime());
+                    int height = insets != null ? insets.getInsets(WindowInsetsCompat.Type.ime()).bottom : 0;
+                    lastSent[0] = -1;
+                    notifyWebKeyboard(webView, "start", open, Math.round(height / density), animation.getDurationMillis());
+                    if (IME_DRIVE_ENABLED && !driving[0] && !controlDenied[0] && Build.VERSION.SDK_INT >= 30) {
+                        driving[0] = true;
+                        takeoverPending[0] = true;
+                        final boolean target = opening;
+                        root.post(() -> driveImeAnimation(root, target, () -> { driving[0] = false; },
+                            () -> { driving[0] = false; takeoverPending[0] = false; controlDenied[0] = true; }));
+                    }
+                    return bounds;
+                }
+
+                @NonNull
+                @Override
+                public WindowInsetsCompat onProgress(@NonNull WindowInsetsCompat insets,
+                        @NonNull java.util.List<androidx.core.view.WindowInsetsAnimationCompat> running) {
+                    if (!imeRunning[0]) return insets;
+                    if (holdUntilTaller[0] >= 0) {
+                        if (webView.getHeight() > holdUntilTaller[0]) holdUntilTaller[0] = -1; // creció: desde el próximo cuadro
+                        return insets;
+                    }
+                    sendCovered(insets.getInsets(WindowInsetsCompat.Type.ime()).bottom);
+                    return insets;
+                }
+
+                @Override
+                public void onEnd(@NonNull androidx.core.view.WindowInsetsAnimationCompat animation) {
+                    if (!isIme(animation)) return;
+                    if (takeoverPending[0]) return; // es la del sistema, cancelada por la nuestra: la conducida sigue
+                    imeRunning[0] = false;
+                    // Con la animación conducida, los insets de la raíz todavía no reflejan el final: se usa lo que pidió el despacho.
+                    boolean open = targetBottom[0] > 0;
+                    int height = targetBottom[0];
+                    // El único achique de la página: el layout descuenta el teclado y la variable vuelve a 0.
+                    lastSent[0] = -1;
+                    webView.evaluateJavascript("document.documentElement.style.setProperty('--ey-keyboard-height','0px')", null);
+                    setPaddingBottom(parent, targetBottom[0]);
+                    notifyWebKeyboard(webView, "end", open, Math.round(height / density), 0);
+                }
+            });
+        ViewCompat.requestApplyInsets(parent);
+        Log.d(TAG, "Keyboard follow installed (single insets writer, per-frame height to the web)");
+    }
+
+    private static final long IME_DRIVE_MS = 280;
+    // EY-CENTRAL 2026-10-16, 16:00: APAGADO. Con la conducción puesta el usuario vio en el Pixel que "se mueve todo"; la
+    // versión sin conducción (animación del sistema, contrato por cuadro) pasó la medición y el circuito completo de
+    // EY-PAYROLL. Se vuelve a encender solo después de medirla sin nadie usando el teléfono.
+    private static final boolean IME_DRIVE_ENABLED = false;
+
+    /**
+     * Conduce la animación del IME (abrir si shown, cerrar si no) con una curva pareja (Material "emphasized decelerate"),
+     * en vez de la del sistema (80 % en 90 ms + cola de 170 ms). Toma el control de la animación en curso: el sistema
+     * cancela la suya y despacha la nuestra a los mismos callbacks. onDone cuando terminó; onDenied si el sistema no
+     * dio el control (queda la del sistema).
+     */
+    private void driveImeAnimation(View root, boolean shown, Runnable onDone, Runnable onDenied) {
+        androidx.core.view.WindowInsetsControllerCompat wic = androidx.core.view.WindowCompat.getInsetsController(getWindow(), root);
+        // Abrir: arranque decidido y frenado suave. Cerrar: curva simétrica, sin cola al llegar abajo (medido: con la de abrir,
+        // el cierre hacía el 80 % en 90 ms y arrastraba los últimos 70 px durante 170 ms: el "se traba" del usuario).
+        final android.view.animation.Interpolator curve = shown
+            ? new android.view.animation.PathInterpolator(0.2f, 0f, 0f, 1f)
+            : new android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f);
+        wic.controlWindowInsetsAnimation(WindowInsetsCompat.Type.ime(), IME_DRIVE_MS, curve, null,
+            new androidx.core.view.WindowInsetsAnimationControlListenerCompat() {
+                @Override
+                public void onReady(@NonNull androidx.core.view.WindowInsetsAnimationControllerCompat controller, int types) {
+                    // Al tomar el control, el sistema ya tiene el IME en su estado FINAL (medido: animaba 346 → 346). Se parte
+                    // del estado inicial real y se llega al final, siempre.
+                    final int hidden = controller.getHiddenStateInsets().bottom;
+                    final int shownB = controller.getShownStateInsets().bottom;
+                    final int from = shown ? hidden : shownB;
+                    final int to = shown ? shownB : hidden;
+                    controller.setInsetsAndAlpha(Insets.of(0, 0, 0, from), 1f, 0f);
+                    android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(0f, 1f);
+                    va.setDuration(IME_DRIVE_MS);
+                    va.setInterpolator(curve);
+                    va.addUpdateListener(a -> {
+                        if (!controller.isReady()) { a.cancel(); return; }
+                        float f = (float) a.getAnimatedValue();
+                        controller.setInsetsAndAlpha(Insets.of(0, 0, 0, Math.round(from + (to - from) * f)), 1f, f);
+                    });
+                    va.addListener(new android.animation.AnimatorListenerAdapter() {
+                        @Override public void onAnimationEnd(android.animation.Animator animation) {
+                            if (controller.isReady()) controller.finish(shown);
+                        }
+                    });
+                    va.start();
+                }
+                @Override public void onFinished(@NonNull androidx.core.view.WindowInsetsAnimationControllerCompat controller) { onDone.run(); }
+                @Override public void onCancelled(androidx.core.view.WindowInsetsAnimationControllerCompat controller) {
+                    if (controller == null) { Log.w(TAG, "IME drive: control denied, keeping system animation"); onDenied.run(); }
+                    else onDone.run();
+                }
+            });
+    }
+
+    private static void setPaddingBottom(View v, int bottom) {
+        if (v.getPaddingBottom() == bottom) return;
+        v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), bottom);
+    }
+
+    /** `ey:keyboard` para la web: fase, abierto o no, alto en px CSS y duración en ms (0 al terminar). */
+    private static void notifyWebKeyboard(WebView webView, String phase, boolean open, int heightCss, long durationMs) {
+        String js = "window.dispatchEvent(new CustomEvent('ey:keyboard',{detail:{phase:'" + phase + "',open:" + open
+            + ",height:" + heightCss + ",duration:" + durationMs + "}}))";
+        webView.evaluateJavascript(js, null);
+    }
+
     private void setupNativeBridge() {
         WebView webView = getBridge().getWebView();
 
@@ -1075,6 +1293,8 @@ public class MainActivity extends BridgeActivity {
         // Agregar JavascriptInterface para comunicación JS -> Java
         webView.addJavascriptInterface(nativeBridge, "AndroidBridge");
         installDocumentStartScript(webView); // EY-CENTRAL 2026-10-08: safe area + stub de Capacitor antes del primer pintado
+        installKeyboardFollow(webView); // EY-CENTRAL 2026-10-16: el teclado arrastra la página cuadro a cuadro
+        if (!BuildConfig.EY_LOCAL_URL.isEmpty()) WebView.setWebContentsDebuggingEnabled(true); // EY-CENTRAL 2026-10-16: solo la compilación de prueba (chrome://inspect)
 
         // Iniciar WebSocket para recibir comandos del dashboard
         webSocketService = new WebSocketService(this, nativeBridge);
@@ -1134,6 +1354,7 @@ public class MainActivity extends BridgeActivity {
 
                 // Permitir navegación a localhost y dominios de Employ
                 if (url.startsWith("https://localhost") ||
+                    (!BuildConfig.EY_LOCAL_URL.isEmpty() && url.startsWith("http://localhost")) || // EY-CENTRAL 2026-10-16: prueba local
                     url.contains("employ.digital") ||
                     url.contains("accounts.google.com") ||
                     url.contains("clerk.")) {
@@ -1558,7 +1779,10 @@ public class MainActivity extends BridgeActivity {
         String host = data.getHost();
         if (host == null) return false;
         host = host.toLowerCase();
-        return host.equals("app.employ.digital") || host.equals("dev.employ.digital"); // sin subdominios de org (decisión del usuario 2026-10-07)
+        // sin subdominios de org (decisión del usuario 2026-10-07). EY-CENTRAL 2026-10-16: también los de payroll, que el
+        // manifiesto ya declaraba (pedido de EY-PAYROLL: un enlace a payroll-dev en frío se ignoraba).
+        return host.equals("app.employ.digital") || host.equals("dev.employ.digital")
+            || host.equals("payroll.employ.digital") || host.equals("payroll-dev.employ.digital");
     }
 
     /** Se llama en onCreate ANTES de loadWebappDirect: guarda la URL del enlace, si la hay. */

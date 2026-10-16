@@ -55,6 +55,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // abierto el WebView se achica y lo que queda detrás (esquinas redondeadas del teclado) es la ventana, que era
         // negra. Blanco como la página, también con el iPhone en modo oscuro (la webapp es solo clara).
         self.window?.backgroundColor = .white
+        // EY-CENTRAL 2026-10-16 (captura zRef/teclado.png, reclamo del usuario): blanco se notaba contra la página gris azulada en
+        // las esquinas del teclado. La ventana toma el color que la página declara (<meta name="theme-color">, WKWebView.themeColor,
+        // iOS 15+), y lo sigue si cambia; sin meta, blanco. Ver observeThemeColor en setupNativeBridge.
 
         // Mostrar splash inmediatamente
         self.showSplash()
@@ -86,6 +89,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // NATIVE BRIDGE SETUP
     // ═══════════════════════════════════════════════════════════════════════════
 
+    private var themeColorObservation: NSKeyValueObservation?
+
+    /// La ventana (lo que se ve detrás del WebView: esquinas del teclado) del color de la página. EY-CENTRAL 2026-10-16.
+    private func observeThemeColor(of webView: WKWebView) {
+        guard #available(iOS 15.0, *) else { return }
+        themeColorObservation = webView.observe(\.themeColor, options: [.initial, .new]) { [weak self] wv, _ in
+            DispatchQueue.main.async { self?.window?.backgroundColor = wv.themeColor ?? .white }
+        }
+    }
+
     private func setupNativeBridge() {
         guard let window = self.window,
               let rootVC = window.rootViewController,
@@ -96,6 +109,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             }
             return
         }
+
+        observeThemeColor(of: webView)
 
         // Create native bridge
         let bridge = NativeBridge(webView: webView, viewController: rootVC)
