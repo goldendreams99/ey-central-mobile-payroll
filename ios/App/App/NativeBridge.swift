@@ -147,12 +147,19 @@ class NativeBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDelegate 
     private var keyboardInFlight = false
     private var keyboardGeneration = 0
     private var keyboardOffsetLock: NSKeyValueObservation?
+    // EY-CENTRAL 2026-10-23 (video del usuario `zRef/ios.MP4`, 2,78 s): la PRIMERA vez que se abre, iOS sube el teclado sin
+    // la fila de sugerencias y la agrega a mitad de camino con un segundo aviso de duración ~0: la caja saltaba ~30 pt en
+    // un cuadro. Un segundo aviso en el mismo sentido mientras el teclado todavía se mueve hereda lo que le falta al
+    // movimiento en curso y su curva: la caja corrige el rumbo y llega junto con el teclado.
+    private var keyboardOpening = false
+    private var keyboardDeadline: CFTimeInterval = 0
+    private var keyboardCurve = 7
 
     @objc private func followKeyboard(_ notification: Notification) {
         guard let webView = webView, let window = webView.window, let info = notification.userInfo,
               let end = (info[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else { return }
-        let duration = (info[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.25
-        let curve = (info[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber)?.intValue ?? 7
+        var duration = (info[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.25
+        var curve = (info[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber)?.intValue ?? 7
         let endInWindow = window.convert(end, from: nil)
         var overlap = max(0, window.bounds.maxY - endInWindow.minY)
         if overlap < 100 { overlap = 0 } // solo la barra de sugerencias (teclado físico): la página no se achica
@@ -161,6 +168,14 @@ class NativeBridge: NSObject, WKScriptMessageHandler, CLLocationManagerDelegate 
         if !keyboardInFlight && abs(webView.frame.height - target) < 0.5 { return }
         if keyboardInFlight && abs(keyboardTargetHeight - target) < 0.5 { return }
         let opening = target < webView.frame.height
+        let remaining = keyboardDeadline - CACurrentMediaTime()
+        if keyboardInFlight && opening == keyboardOpening && remaining > duration {
+            duration = remaining
+            curve = keyboardCurve
+        }
+        keyboardOpening = opening
+        keyboardDeadline = CACurrentMediaTime() + duration
+        keyboardCurve = curve
         keyboardTargetHeight = target
         if overlap > 0 { lockScrollOffset(true) }
         emitKeyboardPhase("start", open: overlap > 0, height: overlap, duration: duration, curve: curve)
