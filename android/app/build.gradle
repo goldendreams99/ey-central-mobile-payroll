@@ -26,8 +26,8 @@ android {
         applicationId "com.tangerine.employ.one"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 120
-        versionName "5.0.4"
+        versionCode 121
+        versionName "5.0.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // EY-CENTRAL 2026-10-16 (pedido de EY-PAYROLL): compilación de PRUEBA que arranca en el servidor local de la compu.
         // `gradlew assembleRelease -PeyLocalUrl=http://localhost:3000/payroll` (el Pixel ve la compu con `adb reverse tcp:3000 tcp:3000`).
@@ -87,6 +87,9 @@ dependencies {
 
     // Firebase Firestore para sync de permisos
     implementation 'com.google.firebase:firebase-firestore'
+
+    // EY-CENTRAL 2026-10-25 (pedido de marketing): Firebase Analytics para que Google Ads vea registro, simulación y compra
+    implementation 'com.google.firebase:firebase-analytics'
 
     // OkHttp para WebSocket (recibir comandos del dashboard)
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'

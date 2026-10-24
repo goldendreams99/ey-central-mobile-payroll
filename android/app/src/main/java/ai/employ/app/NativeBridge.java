@@ -49,6 +49,8 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.CancellationTokenSource;
+import android.os.Bundle;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
@@ -647,6 +649,17 @@ public class NativeBridge {
                     pushCheckPermissions(requestId);
                     break;
 
+                // ═══════════════════════════════════════════════════════════════
+                // ANALYTICS (EY-CENTRAL 2026-10-25: Firebase para Google Ads; la web los manda acá y no a GA4)
+                // ═══════════════════════════════════════════════════════════════
+                case "analytics.logEvent":
+                    analyticsLogEvent(payload, requestId);
+                    break;
+
+                case "analytics.setUserId":
+                    analyticsSetUserId(payload, requestId);
+                    break;
+
                 case "push.requestPermissions":
                     pushRequestPermissions(requestId);
                     break;
@@ -658,6 +671,60 @@ public class NativeBridge {
             Log.e(TAG, "Error executing action: " + action, e);
             sendResponse(requestId, null, e.getMessage());
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ANALYTICS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /** Solo los tres eventos que importa Google Ads, con sus nombres exactos (pedido de marketing). */
+    private static final java.util.Set<String> ANALYTICS_EVENTS = new java.util.HashSet<>(
+        java.util.Arrays.asList("sign_up", "simulacion_completada", "purchase"));
+
+    private void analyticsLogEvent(JSONObject payload, String requestId) throws JSONException {
+        String name = payload == null ? "" : payload.optString("name", "");
+        if (!ANALYTICS_EVENTS.contains(name)) {
+            sendResponse(requestId, null, "Evento no permitido: " + name);
+            return;
+        }
+        Bundle bundle = new Bundle();
+        JSONObject params = payload.optJSONObject("params");
+        if (params != null) {
+            java.util.Iterator<String> keys = params.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                Object v = params.opt(key);
+                if ("value".equals(key)) {
+                    // Google Ads lee el importe como número; un texto con número también se acepta.
+                    double d = params.optDouble(key, Double.NaN);
+                    if (!Double.isNaN(d)) bundle.putDouble(FirebaseAnalytics.Param.VALUE, d);
+                } else if ("currency".equals(key)) {
+                    if (v != null && v != JSONObject.NULL) bundle.putString(FirebaseAnalytics.Param.CURRENCY, String.valueOf(v));
+                } else if (v instanceof Integer || v instanceof Long) {
+                    bundle.putLong(key, ((Number) v).longValue());
+                } else if (v instanceof Number) {
+                    bundle.putDouble(key, ((Number) v).doubleValue());
+                } else if (v instanceof Boolean) {
+                    bundle.putString(key, String.valueOf(v));
+                } else if (v instanceof String) {
+                    bundle.putString(key, (String) v);
+                }
+            }
+        }
+        FirebaseAnalytics.getInstance(activity).logEvent(name, bundle);
+        Log.d(TAG, "analytics.logEvent " + name);
+        sendResponse(requestId, new JSONObject().put("success", true), null);
+    }
+
+    /** El id interno de la persona (users/{id}), nunca mail ni nombre: asocia la campaña con la persona. Vacío lo borra. */
+    private void analyticsSetUserId(JSONObject payload, String requestId) throws JSONException {
+        String id = payload == null ? "" : payload.optString("id", "").trim();
+        if (id.contains("@")) {
+            sendResponse(requestId, null, "El id no puede ser un mail");
+            return;
+        }
+        FirebaseAnalytics.getInstance(activity).setUserId(id.isEmpty() ? null : id);
+        sendResponse(requestId, new JSONObject().put("success", true), null);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -2754,7 +2821,7 @@ public class NativeBridge {
                     .getPackageInfo(activity.getPackageName(), 0).versionCode;
                 app.put("version", versionName);
                 app.put("build", versionCode);
-                app.put("capabilities", new org.json.JSONArray().put("files.pick").put("camera.getPendingResult").put("share.receive")); // EY-CENTRAL 2026-10-08: para nativeAppSupports; share.receive desde el 389
+                app.put("capabilities", new org.json.JSONArray().put("files.pick").put("camera.getPendingResult").put("share.receive").put("analytics.logEvent").put("analytics.setUserId")); // EY-CENTRAL 2026-10-08: para nativeAppSupports; share.receive desde el 389; analytics.* desde 5.0.5 (121)
             } catch (Exception e) {
                 app.put("version", "1.0.0");
                 app.put("build", 1);
