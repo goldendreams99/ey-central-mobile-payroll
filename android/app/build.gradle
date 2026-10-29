@@ -26,7 +26,7 @@ android {
         applicationId "com.tangerine.employ.one"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 121
+        versionCode 122
         versionName "5.0.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // EY-CENTRAL 2026-10-16 (pedido de EY-PAYROLL): compilación de PRUEBA que arranca en el servidor local de la compu.
