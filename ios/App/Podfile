@@ -33,9 +33,9 @@ end
 target 'App' do
   capacitor_pods
   # Add your Pods here
-  pod 'FirebaseCore'
-  pod 'FirebaseFirestore'
-  pod 'FirebaseMessaging'
+  pod 'FirebaseCore', '~> 12.19'
+  pod 'FirebaseFirestore', '~> 12.19.3' # EY-CENTRAL 2026-11-08: parche de seguridad Firestore (CA eMudhra); 13.x no está en CocoaPods
+  pod 'FirebaseMessaging', '~> 12.19'
 end
 
 post_install do |installer|
